@@ -1,8 +1,10 @@
 import os
+from datetime import timedelta
 
 from django.conf import settings
+from django.utils.timezone import now
 from rest_framework import status
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from moviepy.editor import VideoFileClip, concatenate_videoclips
@@ -98,3 +100,31 @@ class VideoMergeView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+
+class ShareLinkView(APIView):
+    def get(self, request, video_id):
+        try:
+            video = get_object_or_404(Video, pk=video_id)
+
+            expiry_time = now() + timedelta(hours=1)
+            video_url = video.file.url.replace(settings.MEDIA_ROOT, settings.MEDIA_URL)
+
+            return Response({
+                "message": "Temporary share link generated successfully.",
+                "video_url": video_url,
+                "expires_at": expiry_time
+            }, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+
+class VideoListView(ListAPIView):
+    queryset = Video.objects.all()
+    serializer_class = VideoUploadSerializer
+
+
+class VideoDetailView(RetrieveAPIView):
+    queryset = Video.objects.all()
+    serializer_class = VideoUploadSerializer
